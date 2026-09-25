@@ -1,0 +1,21 @@
+# 依賴（本專案零依賴，僅保留以防未來擴充）
+node_modules/
+
+# 建置產物（由 tools/build-netlify.js 產生）
+public/
+
+# 資料與上傳檔：含真實資料與聯絡資訊，請勿提交到 GitHub
+data/
+uploads/
+
+# 測試備份（腳本執行時暫時產生）
+.test-backup/
+.e2e-backup/
+.share-backup/
+
+# 系統與編輯器
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

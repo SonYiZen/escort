@@ -1,0 +1,24 @@
+# 不進 Docker 建置環境的檔案（避免真實資料被打包進映像）
+data/
+uploads/
+public/
+node_modules/
+.git/
+.gitignore
+
+# 測試腳本與備份（映像不需要）
+test-api.js
+test-share.js
+e2e-check.js
+tools/
+.test-backup/
+.e2e-backup/
+.share-backup/
+
+# 文件與編輯器設定
+*.md
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

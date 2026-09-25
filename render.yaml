@@ -1,0 +1,57 @@
+# ==================================================
+# Render Blueprint — 一鍵部署免費 Node.js 後端
+# 使用方式：
+#   1. 把專案推上 GitHub
+#   2. 到 https://dashboard.render.com/blueprints → New Blueprint Instance
+#   3. 選擇你的倉庫 → Render 會自動讀取本檔並建立服務
+#
+# 部署後你會得到一個公開網址（例如 https://escort-demo.onrender.com）
+# ==================================================
+services:
+  - type: web
+    name: escort-demo
+    runtime: node
+    plan: free                 # 免費方案（閒置 15 分鐘會休眠，喚醒約 30-60 秒）
+    region: singapore          # 離台灣最近的節點
+    branch: main
+    autoDeploy: true           # 推上 GitHub 就自動重新部署
+    buildCommand: echo "零依賴專案，略過建置"
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+
+      # 預設開啟分享模式：前台可自由瀏覽與送出預約/訊息/評價，
+      # 後台管理與管理 API 全部停用 → 公開展示最安全。
+      # 想開放後台請改成 "0"，並務必設定下方的 ADMIN_PASSWORD。
+      - key: SHARE_MODE
+        value: "1"
+
+      # 管理密碼：sync:false 表示 Render 會在建立服務時請你輸入，
+      # 不會寫進程式碼或 Git。務必設定，否則會是預設的 admin1234。
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # （選用）站台名稱與客服 LINE ID
+      - key: SITE_NAME
+        value: Escort
+      - key: LINE_ID
+        value: "@escort.demo"
+
+# ------------------------------------------------------------
+# 想讓資料在重新部署後仍保留嗎？
+# Render 的「免費方案不支援持久化磁碟」，需升級到付費方案後才能掛載。
+# 升級後把下面的註解取消即可（同時會取消休眠、開機更快）：
+#
+#    plan: starter
+#    disk:
+#      name: escort-data
+#      mountPath: /var/data
+#      sizeGB: 1
+#    envVars:
+#      - key: DATA_DIR
+#        value: /var/data/data
+#      - key: UPLOAD_DIR
+#        value: /var/data/uploads
+# ------------------------------------------------------------

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="個人詳細頁面 — 前後端整合示範（HTML + CSS + 原生 JS + Node.js API）" />
+  <title>莎莎｜個人頁面</title>
+
+  <link rel="stylesheet" href="css/detail.css" />
+  <link rel="stylesheet" href="css/common.css" />
+</head>
+
+<body data-page="detail">
+  <!-- =========== 1. 相片牆 Gallery =========== -->
+  <section class="gallery" aria-label="相片與影片">
+    <input type="radio" name="shot" id="shot-1" checked />
+    <input type="radio" name="shot" id="shot-2" />
+    <input type="radio" name="shot" id="shot-3" />
+    <input type="radio" name="shot" id="shot-4" />
+
+    <a class="back-btn" href="index.html" aria-label="返回首頁">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+    </a>
+
+    <div class="gallery-main">
+      <img class="shot-img img-1" id="shot-img-1" src="https://placehold.co/600x800/6b5d52/ffffff/png?text=Photo+1" alt="莎莎 相片 1（Placeholder）" />
+      <img class="shot-img img-2" id="shot-img-2" src="https://placehold.co/600x800/5d6b66/ffffff/png?text=Photo+2" alt="莎莎 相片 2（Placeholder）" />
+      <img class="shot-img img-3" id="shot-img-3" src="https://placehold.co/600x800/6b5d63/ffffff/png?text=Photo+3" alt="莎莎 相片 3（Placeholder）" />
+      <!-- 影片封面：深底 + 播放鍵（Placeholder） -->
+      <div class="shot-img img-4 shot-video">
+        <img id="shot-img-4" src="https://placehold.co/600x800/23232c/9a9aa6/png?text=Video" alt="影片封面（Placeholder）" />
+        <span class="play-badge" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="8,5 19,12 8,19" /></svg>
+        </span>
+      </div>
+      <!-- 浮水印：由 js/app.js 依成員編號產生（示範用） -->
+      <div class="watermark" id="watermark" aria-hidden="true"></div>
+    </div>
+
+    <div class="thumbs">
+      <label class="thumb" for="shot-1">
+        <img id="thumb-img-1" src="https://placehold.co/128x128/6b5d52/ffffff/png?text=1" alt="縮圖 1" />
+      </label>
+      <label class="thumb" for="shot-2">
+        <img id="thumb-img-2" src="https://placehold.co/128x128/5d6b66/ffffff/png?text=2" alt="縮圖 2" />
+      </label>
+      <label class="thumb" for="shot-3">
+        <img id="thumb-img-3" src="https://placehold.co/128x128/6b5d63/ffffff/png?text=3" alt="縮圖 3" />
+      </label>
+      <label class="thumb" for="shot-4">
+        <img id="thumb-img-4" src="https://placehold.co/128x128/23232c/e8e8ee/png?text=4" alt="影片縮圖" />
+        <span class="mini-play" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="8,5 19,12 8,19" /></svg>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- =========== 2. 個人檔案 =========== -->
+    <section class="profile" aria-label="個人檔案">
+      <div class="profile-top">
+        <div class="name-row">
+          <h1 class="profile-name" id="profile-name">莎莎</h1>
+          <span class="flag" id="profile-flag" title="台灣">🇹🇼</span>
+        </div>
+        <!-- 語音自我介紹（播放 UI 佔位） -->
+        <button class="voice-pill" id="voice-btn" type="button" aria-label="播放語音自我介紹，長度 6 秒" aria-pressed="false">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg>
+          <svg class="wave" width="52" height="18" viewBox="0 0 52 18" fill="currentColor" aria-hidden="true">
+            <rect x="0"  y="6" width="2.6" height="6"  rx="1.3" /><rect x="4"  y="4" width="2.6" height="10" rx="1.3" />
+            <rect x="8"  y="1" width="2.6" height="16" rx="1.3" /><rect x="12" y="5" width="2.6" height="8"  rx="1.3" />
+            <rect x="16" y="3" width="2.6" height="12" rx="1.3" /><rect x="20" y="1" width="2.6" height="16" rx="1.3" />
+            <rect x="24" y="6" width="2.6" height="6"  rx="1.3" /><rect x="28" y="2" width="2.6" height="14" rx="1.3" />
+            <rect x="32" y="4" width="2.6" height="10" rx="1.3" /><rect x="36" y="1" width="2.6" height="16" rx="1.3" />
+            <rect x="40" y="5" width="2.6" height="8"  rx="1.3" /><rect x="44" y="3" width="2.6" height="12" rx="1.3" />
+            <rect x="48" y="6" width="2.6" height="6"  rx="1.3" />
+          </svg>
+          <span>6″</span>
+        </button>
+      </div>
+
+      <p class="profile-loc">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+        <span id="loc-city">台北</span>
+        <span class="loc-views">· 瀏覽 <b id="profile-views">0</b> 次</span>
+      </p>
+
+      <!-- 特色標籤（由資料渲染） -->
+      <ul class="pill-row" id="profile-tags"></ul>
+
+      <!-- 數據條：歲 / 公分 / 公斤 / 罩杯（由資料渲染） -->
+      <ul class="stats" id="profile-stats"></ul>
+
+      <!-- 自我介紹（由資料渲染，同時作為語音朗讀內容） -->
+      <p class="profile-intro" id="profile-intro"></p>
+    </section>
+
+    <!-- =========== 3. 基礎消費 =========== -->
+    <section class="section" aria-label="基礎消費">
+      <div class="section-head">
+        <h2 class="section-title">基礎消費</h2>
+        <span class="pay-badge">現金交易 / 不轉帳 / 不匯款</span>
+      </div>
+      <!-- 方案與價格：依成員底價即時計算（點方案列可直接預約） -->
+      <ul class="price-list" id="price-list"></ul>
+    </section>
+
+    <!-- =========== 4. 服務項目 =========== -->
+    <section class="section" aria-label="服務項目">
+      <div class="section-head">
+        <h2 class="section-title">服務項目</h2>
+      </div>
+      <!-- 服務項目：由資料渲染 -->
+      <ul class="service-grid" id="service-list"></ul>
+    </section>
+
+    <!-- =========== 5. 可加值服務 =========== -->
+    <section class="section" aria-label="可加值服務">
+      <div class="section-head">
+        <h2 class="section-title">可加值服務</h2>
+      </div>
+      <!-- 可加值服務：由資料渲染 -->
+      <ul class="chip-cloud" id="addon-list"></ul>
+
+      <div class="cta-stack">
+        <button class="book-cta" id="book-btn" type="button">
+          <span class="book-ico" aria-hidden="true">📅</span>
+          立即預約（選方案與時間）
+        </button>
+        <a class="line-cta" id="line-cta" href="#">
+          <span class="line-ico" aria-hidden="true">LINE</span>
+          加 LINE 洽詢方案與加購價格
+        </a>
+      </div>
+    </section>
+
+    <!-- =========== 6. 可約時間 =========== -->
+    <section class="section" aria-label="可約時間">
+      <div class="section-head">
+        <h2 class="section-title">可約時間</h2>
+      </div>
+      <!-- 可約時間：由資料渲染（已滿時段自動停用） -->
+      <div class="time-row" id="slot-row"></div>
+    </section>
+
+    <!-- =========== 7. 客評截圖 =========== -->
+    <section class="section" aria-label="顧客評價">
+      <div class="section-head">
+        <h2 class="section-title">顧客評價</h2>
+        <span class="section-note" id="review-count"></span>
+      </div>
+      <!-- 已審核通過的評價：由資料渲染 -->
+      <div class="review-row no-scrollbar" id="review-row"></div>
+
+      <!-- 送出評價（寫入後台客評審核） -->
+      <div class="review-write">
+        <p class="review-write-title">留下你的評價</p>
+        <div class="field">
+          <label for="rw-nick">暱稱（可留白，預設匿名）</label>
+          <input id="rw-nick" type="text" maxlength="20" placeholder="匿名" />
+        </div>
+        <div class="field">
+          <label for="rw-text">評價內容</label>
+          <textarea id="rw-text" rows="3" maxlength="300" placeholder="分享你的約會體驗，送出後由客服審核"></textarea>
+        </div>
+        <button class="btn-send" id="rw-send" type="button">送出評價</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========== Footer =========== -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>示範站台（前後端整合）· 所有資料與圖片皆為 Placeholder</p>
+      <a class="back-home" href="index.html">← 返回首頁列表</a>
+      <a class="footer-link" href="guide.html">新手指南</a>
+      <button class="report-link" id="report-btn" type="button">檢舉此頁面</button>
+    </div>
+  </footer>
+
+  <button class="contact-fab" id="contact-btn" type="button">💬 聯絡客服</button>
+  <!-- LINE 洽詢彈窗（由 js/app.js 控制） -->
+  <div class="modal" id="line-modal" role="dialog" aria-modal="true" aria-labelledby="line-title">
+    <div class="backdrop"></div>
+    <div class="dialog">
+      <h2 class="modal-title" id="line-title">加 LINE 洽詢</h2>
+      <p class="line-id-text">LINE ID：<b data-line-id>@escort.demo</b>（示範用，可由後台系統設定修改）</p>
+      <p class="dialog-sub">加入後請提供「成員編號 + 想預約的時間」，客服會盡快回覆。</p>
+      <div class="modal-actions">
+        <button class="btn" id="line-ask" type="button">改送客服訊息</button>
+        <button class="btn" id="line-copy" type="button">複製 ID</button>
+        <button class="btn primary" id="line-close" type="button">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 預約彈窗（由 js/app.js 控制） -->
+  <div class="modal" id="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-title">
+    <div class="backdrop"></div>
+    <div class="dialog">
+      <h2 class="modal-title" id="booking-title">送出預約需求</h2>
+      <p class="dialog-sub">送出後會進入後台「預約管理」，客服確認時間後會以你留下的方式聯繫。</p>
+      <div class="field">
+        <label for="bm-plan">方案</label>
+        <select id="bm-plan"></select>
+      </div>
+      <div class="field">
+        <label for="bm-slot">可約時間</label>
+        <select id="bm-slot"></select>
+      </div>
+      <p class="booking-total">預估金額：<b id="bm-price">$0</b> <small>（現場現金交易）</small></p>
+      <div class="field">
+        <label for="bm-contact">聯絡方式（LINE ID 或手機）</label>
+        <input id="bm-contact" type="text" maxlength="60" placeholder="例如：line: myid 或 0912-345-678" />
+      </div>
+      <div class="field">
+        <label for="bm-note">備註（可留白）</label>
+        <input id="bm-note" type="text" maxlength="120" placeholder="例如：想約在捷運站附近" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="bm-cancel" type="button">取消</button>
+        <button class="btn primary" id="bm-send" type="button">送出預約</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 檢舉彈窗（由 js/app.js 控制） -->
+  <div class="modal" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div class="backdrop"></div>
+    <div class="dialog">
+      <h2 class="modal-title" id="report-title">檢舉此頁面</h2>
+      <p class="dialog-sub">檢舉案件會進入後台「檢舉處理」，我們會盡快查核。</p>
+      <div class="field">
+        <label for="rp-reason">檢舉原因</label>
+        <select id="rp-reason">
+          <option>照片與本人不符</option>
+          <option>要求先付款／疑似詐騙</option>
+          <option>服務內容與說明不符</option>
+          <option>態度不佳</option>
+          <option>其他</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rp-detail">詳細說明</label>
+        <textarea id="rp-detail" rows="3" maxlength="300" placeholder="請描述發生的情况，方便客服查核"></textarea>
+      </div>
+      <div class="field">
+        <label for="rp-reporter">你的稱呼（可留白）</label>
+        <input id="rp-reporter" type="text" maxlength="30" placeholder="匿名使用者" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="rp-cancel" type="button">取消</button>
+        <button class="btn primary" id="rp-send" type="button">送出檢舉</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,24 @@
+# Netlify 部署設定
+# 說明：本專案為「Node.js 後端 + 靜態前端」，Netlify 只托管靜態檔，
+#       因此建置時會執行 tools/build-netlify.js，只輸出前端與去識別化示範資料到 public/。
+
+[build]
+  command = "node tools/build-netlify.js"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# 安全性標頭（靜態示範版）
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# 示範資料不給瀏覽器長期快取，方便你重新部署後立即看到更新
+[[headers]]
+  for = "/js/demo-data.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

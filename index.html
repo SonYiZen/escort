@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e0e14" />
+  <meta name="description" content="Escort 交友平台 — 前後端整合示範（HTML + CSS + 原生 JS + Node.js API）" />
+  <title>Escort｜外送・定點</title>
+
+  <link rel="stylesheet" href="css/index.css" />
+  <link rel="stylesheet" href="css/common.css" />
+</head>
+
+<body data-page="index">
+  <!-- =========== 1. 頂部導覽列 =========== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html" data-site-name>Escort</a>
+      <nav class="mode-switch" aria-label="服務模式切換">
+        <input type="radio" id="mode-outcall" name="service-mode" value="外送" checked />
+        <label for="mode-outcall">外送</label>
+        <input type="radio" id="mode-onsite" name="service-mode" value="定點" />
+        <label for="mode-onsite">定點</label>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- =========== 2. 推廣橫幅 =========== -->
+    <section class="banner" aria-label="推廣活動">
+      <div class="banner-copy">
+        <p class="banner-kicker">新手指南</p>
+        <h1 class="banner-title">第一次約會就上手<br />安全與禮儀須知</h1>
+        <p class="banner-sub">3 分鐘了解預約流程、安全守則與常見問題。</p>
+        <a class="btn-pill" href="guide.html">
+          立即閱讀
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+        </a>
+      </div>
+      <div class="banner-media">
+        <!-- Placeholder：可替換為活動圖片或 QR Code -->
+        <img src="https://placehold.co/192x192/26262f/6f6f7c/png?text=QR" alt="活動 QR Code（Placeholder）" loading="lazy" />
+      </div>
+    </section>
+
+    <!-- 站台公告 / 暫停接單提示（由後台「系統設定」控制） -->
+    <p class="notice" id="site-notice" role="status">
+      <span id="site-notice-text"></span>
+      <button class="close" id="notice-close" type="button" aria-label="關閉公告">✕</button>
+    </p>
+    <p class="site-closed" id="site-closed" role="status">目前暫停接單，開放時間請留意公告或聯絡客服。</p>
+
+    <!-- =========== 3. 篩選與搜尋欄 =========== -->
+    <section class="filter-bar" aria-label="篩選與搜尋">
+      <div class="select-wrap">
+        <label class="sr-only" for="city">選擇縣市</label>
+        <select class="select" id="city" name="city">
+          <option selected>全台縣市</option>
+          <option>台北市</option>
+          <option>新北市</option>
+          <option>桃園市</option>
+          <option>新竹市</option>
+          <option>台中市</option>
+          <option>台南市</option>
+          <option>高雄市</option>
+          <option>宜蘭縣</option>
+          <option>花蓮縣</option>
+        </select>
+        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+      </div>
+      <button class="btn-adv" id="adv-btn" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+        進階搜尋
+      </button>
+    </section>
+
+    <!-- =========== 4. 雙欄卡片網格 =========== -->
+    <section class="listing" aria-label="推薦列表">
+      <h2 class="sr-only">推薦列表</h2>
+      <p class="list-count" id="list-count">載入中…</p>
+      <ul class="card-grid" id="member-grid">
+      </ul>
+    </section>
+  </main>
+
+  <!-- =========== Footer =========== -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>示範站台（前後端整合）· 所有資料與圖片皆為 Placeholder</p>
+      <p class="footer-links">
+        <a href="guide.html">新手指南</a>
+        <span aria-hidden="true">·</span>
+        <a href="admin.html">營運後台</a>
+      </p>
+    </div>
+  </footer>
+
+  <button class="contact-fab" id="contact-btn" type="button">💬 聯絡客服</button>
+  <!-- 進階搜尋彈窗（由 js/app.js 控制） -->
+  <div class="modal" id="adv-modal" role="dialog" aria-modal="true" aria-labelledby="adv-title">
+    <div class="backdrop"></div>
+    <div class="dialog">
+      <h2 class="modal-title" id="adv-title">進階搜尋</h2>
+      <div class="field">
+        <label for="f-kw">關鍵字（暱稱／編號）</label>
+        <input id="f-kw" type="text" placeholder="例如：Kiki、A1024" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-min">最低價格</label>
+          <input id="f-min" type="number" min="0" step="100" placeholder="0" />
+        </div>
+        <div class="field">
+          <label for="f-max">最高價格</label>
+          <input id="f-max" type="number" min="0" step="100" placeholder="不限" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-sort">排序方式</label>
+        <select id="f-sort">
+          <option value="default">預設排序</option>
+          <option value="asc">價格 低 → 高</option>
+          <option value="desc">價格 高 → 低</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="f-reset" type="button">重設</button>
+        <button class="btn primary" id="f-apply" type="button">套用</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+
+
+
+

@@ -1,0 +1,155 @@
+/* ==================================================
+   新手指南頁（guide.html）— 淺色閱讀版型
+   與 detail.css 同色系，獨立自足
+   ================================================== */
+:root {
+  --bg:       #f6f7f9;
+  --card:     #ffffff;
+  --line:     #e7e8ee;
+  --text:     #1a1a21;
+  --text-2:   #6f6f7c;
+  --accent:   #ffd23f;
+  --accent-ink: #5f4a00;
+  --accent-soft: #fff7d6;
+  --radius-m: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, h3, p, ul, ol { margin: 0; }
+ul, ol { padding: 0 0 0 20px; }
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.container { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
+
+/* ---------- 頂欄 ---------- */
+.top {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.top-inner { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.top-brand { font-size: 1.1rem; font-weight: 800; letter-spacing: .02em; }
+.top-back {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--accent); color: #17171c;
+  font-size: .82rem; font-weight: 800;
+}
+
+/* ---------- 主視覺 ---------- */
+.hero { padding: 26px 0 8px; }
+.hero-kicker {
+  display: inline-block; margin-bottom: 10px;
+  padding: 4px 12px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: .72rem; font-weight: 800; letter-spacing: .04em;
+}
+.hero-title { font-size: 1.5rem; font-weight: 800; line-height: 1.35; margin-bottom: 8px; }
+.hero-sub { color: var(--text-2); font-size: .92rem; }
+
+/* ---------- 內容卡 ---------- */
+.card-block {
+  margin: 18px 0;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+.block-title {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+  font-size: 1.02rem; font-weight: 800;
+}
+.block-title .num {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 8px;
+  background: #17171c; color: var(--accent);
+  font-size: .74rem; font-weight: 800;
+}
+
+/* 流程步驟 */
+.steps { list-style: none; padding: 0; display: grid; gap: 10px; }
+.step { display: flex; gap: 12px; padding: 12px; background: #fafafc; border-radius: 10px; }
+.step .dot {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); color: #17171c;
+  font-size: .78rem; font-weight: 800;
+}
+.step b { display: block; font-size: .92rem; }
+.step p { font-size: .86rem; color: var(--text-2); }
+
+/* 安全守則 */
+.rules { list-style: none; padding: 0; display: grid; gap: 8px; }
+.rules li { display: flex; gap: 10px; font-size: .9rem; }
+.rules .ico { flex: 0 0 auto; }
+
+/* 常見問題（原生 details 手風琴） */
+.faq { border-top: 1px solid var(--line); }
+.faq:first-of-type { border-top: 0; }
+.faq summary {
+  padding: 13px 2px;
+  font-size: .92rem; font-weight: 700;
+  cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::before { content: "＋"; color: var(--text-2); font-weight: 800; }
+.faq[open] summary::before { content: "－"; }
+.faq .ans { padding: 0 2px 14px 24px; font-size: .88rem; color: var(--text-2); }
+
+/* 條款 */
+.terms { font-size: .86rem; color: var(--text-2); }
+.terms li { margin-bottom: 6px; }
+
+/* ---------- 底部 ---------- */
+.site-footer {
+  margin-top: 26px; padding: 22px 0 calc(26px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  text-align: center; font-size: .78rem; color: var(--text-2);
+}
+.site-footer .back-home { display: inline-block; margin-top: 8px; font-weight: 700; color: var(--text); }
+
+/* ---------- 固定聯絡客服鈕 ---------- */
+.contact-fab {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 20;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 18px; border: 1px solid transparent; border-radius: 999px;
+  background: #17171c; color: #fff;
+  font-size: .86rem; font-weight: 800; cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .22);
+}
+.contact-fab:hover { filter: brightness(1.12); }
+
+/* ---------- 公用小元件（與其他頁一致） ---------- */
+.notice {
+  display: none;
+  margin-top: 14px; padding: 11px 14px;
+  border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: .84rem; font-weight: 600;
+}
+.notice.show { display: flex; align-items: center; gap: 10px; }
+.notice .close {
+  margin-left: auto; border: 0; background: transparent;
+  color: inherit; font-size: 1rem; line-height: 1; cursor: pointer; opacity: .6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}

@@ -26,7 +26,7 @@ services:
       # 後台管理與管理 API 全部停用 → 公開展示最安全。
       # 想開放後台請改成 "0"，並務必設定下方的 ADMIN_PASSWORD。
       - key: SHARE_MODE
-        value: "1"
+        value: "0"
 
       # 管理密碼：sync:false 表示 Render 會在建立服務時請你輸入，
       # 不會寫進程式碼或 Git。務必設定，否則會是預設的 admin1234。

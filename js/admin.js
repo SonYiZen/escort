@@ -402,14 +402,14 @@
         '<img src="' + esc(u) + '" alt="成員照片 ' + (i + 1) + '" />' +
         (i === 0 ? '<span class="cover-tag">主圖</span>' : '') +
         '<button class="rm" type="button" data-rm-image="' + i + '" aria-label="移除第 ' + (i + 1) + ' 張照片">✕</button>' +
-      '</div>';
+        '</div>';
     }).join('');
 
     if (formImages.length < FORM_IMAGE_MAX) {
       html += '<label class="upload-drop" id="f-image-drop">' +
         '<span id="f-image-drop-text">＋<br />上傳照片</span>' +
         '<input type="file" id="f-image-input" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden />' +
-      '</label>';
+        '</label>';
     }
     grid.innerHTML = html;
 
@@ -735,15 +735,15 @@
       var shots = (r.images || []).map(function (u, i) {
         return '<div class="upload-item">' +
           '<a href="' + esc(u) + '" target="_blank" rel="noopener" title="點擊看大圖">' +
-            '<img src="' + esc(u) + '" alt="評價圖片 ' + (i + 1) + '" loading="lazy" />' +
+          '<img src="' + esc(u) + '" alt="評價圖片 ' + (i + 1) + '" loading="lazy" />' +
           '</a>' +
           '<button class="rm" type="button" data-action="rmimage" data-id="' + esc(r.id) + '" data-url="' + esc(u) + '" aria-label="移除第 ' + (i + 1) + ' 張圖片">✕</button>' +
-        '</div>';
+          '</div>';
       }).join('');
       var uploader = (r.images || []).length < 3
         ? '<label class="upload-drop"><span>＋<br />圖片</span>' +
-            '<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden data-review-upload="' + esc(r.id) + '" />' +
-          '</label>'
+        '<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden data-review-upload="' + esc(r.id) + '" />' +
+        '</label>'
         : '';
 
       return '<div class="list-item">' +
@@ -1118,15 +1118,11 @@
     API.session().then(function (s) {
       if (s && s.siteName) $('#admin-name').textContent = s.siteName + ' Admin';
 
-      /* 靜態示範版（Netlify 等純靜態空間）：無後端可登入，直接說明 */
+      /* 靜態示範版：改用瀏覽器沙盒（localStorage），可直接登入試玩後台 */
       if (s && s.demo) {
-        showLogin('此站台為靜態示範版（未連接後端），管理後台需在執行 node server.js 的環境使用');
-        $('#login-btn').disabled = true;
-        $('#login-btn').textContent = '後台需搭配後端';
-        $('#login-password').disabled = true;
-        $('#login-password').placeholder = '（靜態示範版無法登入）';
         var hint = $('.login-hint');
-        if (hint) hint.textContent = '想體驗後台功能，請在本機執行 node server.js 後開啟 http://localhost:3000/admin.html';
+        if (hint) hint.textContent = '這是示範沙盒（資料存在你的瀏覽器）。示範密碼：demo1234';
+        showLogin();
         return;
       }
 

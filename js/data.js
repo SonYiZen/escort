@@ -55,79 +55,526 @@ function loadDemoData() {
 
 function isStaticDemo() { return STATIC_DEMO === true; }
 
-/* 示範資料查詢（回應格式與後端一致；寫入類一律回 403 提示） */
-function demoResolve(method, url) {
-  var d = window.DEMO_DATA || {};
-  var members = d.members || [];
-  var reviews = d.reviews || [];
+/* ---------- 示範沙盒（存在瀏覽器）----------
+   偵測不到後端時，所有資料改用 localStorage 儲存，因此靜態版也能真的操作：
+     ✔ 訪客可以送出預約、評價、檢舉、客服訊息，並立刻看到結果
+     ✔ 後台可以登入（示範密碼 demo1234）、新增／編輯／刪除成員、審核評價、處理檢舉、修改設定
+     ✔ 每位訪客各自擁有獨立沙盒，互不干擾；重新整理仍保留
+     ✘ 資料只存在該訪客的瀏覽器，清除瀏覽資料即重置
+   ============================================================ */
+var DEMO_KEY = 'escort_demo_store_v1';
+var DEMO_PASSWORD = 'demo1234';         /* 公開沙盒用的示範密碼 */
+var DEMO_IMG_MAX_BYTES = 300 * 1024;    /* 沙盒單張圖片上限（localStorage 容量有限） */
+var DEMO_IMG_MAX_COUNT = 4;             /* 每筆資料最多幾張圖 */
+var demoImgSeq = 0;
+
+function demoClone(v) { return JSON.parse(JSON.stringify(v === undefined ? null : v)); }
+
+function demoStamp() {
+  var d = new Date();
+  function p(n) { return (n < 10 ? '0' : '') + n; }
+  return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/* 出廠示範資料 */
+function demoSeed() {
+  var seed = window.DEMO_DATA || {};
+  return {
+    members: demoClone(seed.members || []),
+    reviews: demoClone(seed.reviews || []),
+    bookings: [],
+    messages: [],
+    reports: [],
+    settings: demoClone(seed.settings || {}),
+    authed: false,
+    counter: 9000
+  };
+}
+
+/* 讀取沙盒（首次使用時自動建立） */
+function demoStore() {
+  var store = null;
+  try { store = JSON.parse(localStorage.getItem(DEMO_KEY) || 'null'); } catch (e) { store = null; }
+  if (!store || !Array.isArray(store.members)) {
+    store = demoSeed();
+    demoSave(store);
+  }
+  return store;
+}
+
+function demoSave(store) {
+  try { localStorage.setItem(DEMO_KEY, JSON.stringify(store)); return true; }
+  catch (e) { return false; }   /* 容量不足時回報失敗，不讓流程中斷 */
+}
+
+function demoNextId(store, prefix) {
+  store.counter = (store.counter || 9000) + 1;
+  return prefix + store.counter;
+}
+
+/* 沙盒的請求處理（回應格式與後端一致，前端完全不用改） */
+function demoResolve(method, url, body) {
+  var store = demoStore();
   var pathname = String(url).split('?')[0];
   var qs = String(url).indexOf('?') > -1 ? String(url).split('?')[1] : '';
-  var query = new URLSearchParams(qs);
   var seg = pathname.split('/').filter(Boolean);
-  var resource = seg[1] || '';
-  var id = seg[2] ? decodeURIComponent(seg[2]) : '';
-  var sub = seg[3] ? decodeURIComponent(seg[3]) : '';
 
-  function ok(obj) { return Promise.resolve(obj); }
-  function refuse(what) {
-    var err = new Error('這是靜態示範版（未連接後端），「' + what + '」僅在執行 node server.js 的環境可用');
-    err.status = 403;
-    return Promise.reject(err);
-  }
+  var ctx = {
+    store: store,
+    method: method,
+    resource: seg[1] || '',
+    id: seg[2] ? decodeURIComponent(seg[2]) : '',
+    sub: seg[3] ? decodeURIComponent(seg[3]) : '',
+    query: new URLSearchParams(qs),
+    body: body || {}
+  };
 
-  if (resource === 'health') return ok({ ok: true, demo: true, count: members.length });
-  if (resource === 'session') {
-    return ok({
-      authed: false, shareMode: true, demo: true,
-      siteName: (d.settings || {}).siteName || 'Escort',
-      siteOpen: (d.settings || {}).siteOpen !== false
-    });
-  }
-  if (resource === 'settings') {
-    if (method === 'GET') return ok(d.settings || {});
-    return refuse('修改站台設定');
-  }
-  if (resource === 'members') {
-    if (!id && method === 'GET') return ok({ members: members, count: members.length });
-    if (id && sub === 'view' && method === 'POST') {
-      var mv = members.filter(function (x) { return x.id === id; })[0];
-      return ok({ views: mv ? (Number(mv.views) || 0) + 1 : 0 });   /* 示範版不寫檔，僅供畫面顯示 */
-    }
-    if (id && !sub && method === 'GET') {
-      var hit = members.filter(function (x) { return x.id === id; })[0];
-      if (!hit) {
-        var e404 = new Error('查無成員 #' + id);
-        e404.status = 404;
-        return Promise.reject(e404);
-      }
-      return ok({ member: hit });
-    }
-    return refuse('管理成員資料');
-  }
-  if (resource === 'reviews') {
-    if (method === 'GET') {
-      var mid = query.get('memberId');
-      if (!mid) {
-        var e400 = new Error('前台查詢評價需指定 memberId');
-        e400.status = 400;
-        return Promise.reject(e400);
-      }
-      var list = reviews.filter(function (r) { return r.memberId === mid; });
-      return ok({ reviews: list, count: list.length });
-    }
-    return refuse('送出評價');
-  }
-  if (resource === 'bookings') return refuse('送出預約');
-  if (resource === 'messages') return refuse('送出客服訊息');
-  if (resource === 'reports') return refuse('送出檢舉');
-  if (resource === 'login') return refuse('登入後台');
-  if (resource === 'logout') return refuse('登出後台');
-  if (resource === 'stats') return refuse('瀏覽後台統計');
-  if (resource === 'reset') return refuse('重置示範資料');
-  if (resource === 'uploads') return refuse('上傳圖片');
+  ctx.ok = function (obj) { return Promise.resolve(obj); };
+  ctx.fail = function (status, msg) { var e = new Error(msg); e.status = status; return Promise.reject(e); };
+  ctx.guard = function () {
+    return store.authed ? null : ctx.fail(401, '請先登入後台（沙盒示範密碼 ' + DEMO_PASSWORD + '）');
+  };
+  ctx.find = function (arr, key) {
+    for (var i = 0; i < arr.length; i++) { if (arr[i].id === key) return arr[i]; }
+    return null;
+  };
+  ctx.trim = function (v, n) { var s = String(v == null ? '' : v).trim(); return n && s.length > n ? s.slice(0, n) : s; };
+  ctx.stamp = demoStamp;
+  ctx.nextId = function (p) { return demoNextId(store, p); };
+  ctx.save = function () { return demoSave(store); };
 
-  return refuse('此功能');
+  var r = ctx.resource;
+  if (r === 'health') return ctx.ok({ ok: true, demo: true, count: store.members.length });
+  if (r === 'session') return demoSession(ctx);
+  if (r === 'login' || r === 'logout') return demoAuth(ctx);
+  if (r === 'settings') return demoSettings(ctx);
+  if (r === 'reset') return demoResetApi(ctx);
+  if (r === 'stats') return demoStatsApi(ctx);
+  if (r === 'members') return demoMembers(ctx);
+  if (r === 'reviews') return demoReviews(ctx);
+  if (r === 'bookings' || r === 'messages' || r === 'reports') return demoCollection(ctx);
+  if (r === 'uploads') return demoUploads(ctx);
+
+  return ctx.fail(404, '沙盒未支援此功能：' + method + ' ' + pathname);
 }
+
+/* --- 登入狀態 --- */
+function demoSession(ctx) {
+  var s = ctx.store.settings;
+  return ctx.ok({
+    authed: !!ctx.store.authed,
+    demo: true,
+    siteName: s.siteName || 'Escort',
+    siteOpen: s.siteOpen !== false
+  });
+}
+
+/* --- 登入 / 登出（沙盒密碼公開，方便任何人試玩後台） --- */
+function demoAuth(ctx) {
+  var store = ctx.store;
+  if (ctx.resource === 'logout') {
+    store.authed = false;
+    ctx.save();
+    return ctx.ok({ authed: false });
+  }
+  if (String(ctx.body.password) !== DEMO_PASSWORD) {
+    return ctx.fail(401, '沙盒示範密碼是 ' + DEMO_PASSWORD);
+  }
+  store.authed = true;
+  ctx.save();
+  return ctx.ok({ authed: true });
+}
+
+/* --- 站台設定 --- */
+function demoSettings(ctx) {
+  if (ctx.method === 'GET') return ctx.ok({ settings: demoClone(ctx.store.settings) });
+  var g = ctx.guard();
+  if (g) return g;
+  var s = ctx.store.settings;
+  ['siteName', 'lineId', 'notice', 'defaultCity'].forEach(function (k) {
+    if (ctx.body[k] !== undefined) s[k] = ctx.trim(ctx.body[k], 120);
+  });
+  if (ctx.body.siteOpen !== undefined) s.siteOpen = !!ctx.body.siteOpen;
+  s.updated = ctx.stamp();
+  ctx.save();
+  return ctx.ok({ settings: demoClone(s) });
+}
+
+/* --- 重置沙盒（還原成出廠示範資料） --- */
+function demoResetApi(ctx) {
+  var g = ctx.guard();
+  if (g) return g;
+  var fresh = demoReset();
+  fresh.authed = true;      /* 重置後保持登入，方便繼續操作 */
+  demoSave(fresh);
+  return ctx.ok({ ok: true, demo: true });
+}
+
+/* --- 統計（由沙盒資料即時計算） --- */
+function demoStatsApi(ctx) {
+  var g = ctx.guard();
+  if (g) return g;
+  return ctx.ok({ stats: demoStats(ctx.store) });
+}
+
+function demoStats(store) {
+  var today = demoStamp().slice(0, 5);
+  function count(arr, k, v) { return arr.filter(function (x) { return x[k] === v; }).length; }
+  var views = store.members.reduce(function (a, m) { return a + (Number(m.views) || 0); }, 0);
+  var top = store.members.slice().sort(function (a, b) { return (b.views || 0) - (a.views || 0); })
+    .slice(0, 5).map(function (m) { return { id: m.id, name: m.name, views: Number(m.views) || 0 }; });
+  return {
+    members: {
+      total: store.members.length,
+      on: count(store.members, 'status', 'on'),
+      pending: count(store.members, 'status', 'pending'),
+      off: count(store.members, 'status', 'off')
+    },
+    views: { total: views, top: top },
+    bookings: {
+      total: store.bookings.length,
+      today: store.bookings.filter(function (b) { return String(b.date || '').indexOf(today) === 0; }).length,
+      pending: count(store.bookings, 'status', 'pending'),
+      confirmed: count(store.bookings, 'status', 'confirmed'),
+      done: count(store.bookings, 'status', 'done'),
+      cancelled: count(store.bookings, 'status', 'cancelled')
+    },
+    messages: {
+      total: store.messages.length,
+      unread: count(store.messages, 'status', 'unread'),
+      read: count(store.messages, 'status', 'read'),
+      replied: count(store.messages, 'status', 'replied')
+    },
+    reviews: {
+      total: store.reviews.length,
+      pending: count(store.reviews, 'status', 'pending'),
+      on: count(store.reviews, 'status', 'on'),
+      off: count(store.reviews, 'status', 'off')
+    },
+    reports: {
+      total: store.reports.length,
+      open: count(store.reports, 'status', 'open'),
+      resolved: count(store.reports, 'status', 'resolved'),
+      dismissed: count(store.reports, 'status', 'dismissed')
+    },
+    updatedAt: demoStamp()
+  };
+}
+
+/* --- 成員（讀取公開；寫入需登入，與後端權限一致） --- */
+function demoMembers(ctx) {
+  var store = ctx.store;
+  var list = store.members;
+
+  if (!ctx.id && ctx.method === 'GET') {
+    var out = store.authed ? list : list.filter(function (m) { return m.status === 'on'; });
+    return ctx.ok({ members: demoClone(out), count: out.length });
+  }
+
+  if (ctx.id && ctx.sub === 'view' && ctx.method === 'POST') {
+    var mv = ctx.find(list, ctx.id);
+    if (!mv) return ctx.fail(404, '查無成員 #' + ctx.id);
+    mv.views = (Number(mv.views) || 0) + 1;
+    ctx.save();
+    return ctx.ok({ views: mv.views });
+  }
+
+  if (ctx.id && !ctx.sub && ctx.method === 'GET') {
+    var one = ctx.find(list, ctx.id);
+    if (!one) return ctx.fail(404, '查無成員 #' + ctx.id);
+    return ctx.ok({ member: demoClone(one) });
+  }
+
+  var g = ctx.guard();
+  if (g) return g;
+
+  /* 新增成員 */
+  if (!ctx.id && ctx.method === 'POST') {
+    var name = ctx.trim(ctx.body.name, 20);
+    var age = parseInt(ctx.body.age, 10);
+    var price = parseInt(ctx.body.price, 10);
+    if (!name) return ctx.fail(400, '暱稱為必填欄位');
+    if (!age || age < 18) return ctx.fail(400, '年齡需為 18 歲以上的整數');
+    if (!price || price <= 0) return ctx.fail(400, '價格需為正整數');
+
+    var imgs = Array.isArray(ctx.body.images) ? ctx.body.images.slice(0, DEMO_IMG_MAX_COUNT) : [];
+    var member = {
+      id: ctx.nextId('A'),
+      name: name, age: age, price: price,
+      city: ctx.body.city || '台北市',
+      type: ctx.body.type === '定點' ? '定點' : '外送',
+      status: ['on', 'pending', 'off'].indexOf(ctx.body.status) !== -1 ? ctx.body.status : 'pending',
+      updated: ctx.stamp(), views: 0,
+      tags: Array.isArray(ctx.body.tags) ? ctx.body.tags.slice(0, 3) : [],
+      flag: ctx.body.flag || '🇹🇼', flagName: ctx.body.flagName || '台灣',
+      height: parseInt(ctx.body.height, 10) || 160,
+      weight: parseInt(ctx.body.weight, 10) || 45,
+      cup: ctx.trim(ctx.body.cup, 4) || 'B',
+      intro: ctx.trim(ctx.body.intro, 120),
+      images: imgs, img: '', avatar: '',
+      services: [], addons: [], slots: []
+    };
+    if (imgs.length) {
+      member.img = imgs[0];
+      member.avatar = imgs[0];
+    } else {
+      member.images = [1, 2, 3, 4].map(function (n) {
+        return 'https://placehold.co/600x800/2b2b36/565660/png?text=' + encodeURIComponent(name) + '+' + n;
+      });
+      member.img = member.images[0];
+      member.avatar = 'https://placehold.co/72x72/2b2b36/f4f4f7/png?text=' + encodeURIComponent(name.charAt(0));
+    }
+    list.push(member);
+    if (!ctx.save()) {
+      list.pop();
+      return ctx.fail(400, '沙盒儲存空間已滿，請先移除部分照片或重置示範資料');
+    }
+    return ctx.ok({ member: demoClone(member) });
+  }
+
+  /* 更新成員（只帶 status 時為快速上下架） */
+  if (ctx.id && (ctx.method === 'PUT' || ctx.method === 'PATCH')) {
+    var t = ctx.find(list, ctx.id);
+    if (!t) return ctx.fail(404, '查無成員 #' + ctx.id);
+    if (Object.keys(ctx.body).length === 1 && ctx.body.status !== undefined) {
+      if (['on', 'pending', 'off'].indexOf(ctx.body.status) === -1) return ctx.fail(400, '狀態值不正確');
+      t.status = ctx.body.status;
+      t.updated = ctx.stamp();
+      ctx.save();
+      return ctx.ok({ member: demoClone(t) });
+    }
+    ['name', 'city', 'type', 'status', 'flag', 'flagName'].forEach(function (f) {
+      if (ctx.body[f] !== undefined) {
+        var v = ctx.trim(ctx.body[f], 40);
+        if (v) t[f] = v;
+      }
+    });
+    if (ctx.body.age !== undefined) t.age = parseInt(ctx.body.age, 10) || t.age;
+    if (ctx.body.price !== undefined) t.price = parseInt(ctx.body.price, 10) || t.price;
+    if (ctx.body.height !== undefined) t.height = parseInt(ctx.body.height, 10) || t.height;
+    if (ctx.body.weight !== undefined) t.weight = parseInt(ctx.body.weight, 10) || t.weight;
+    if (ctx.body.cup !== undefined) t.cup = ctx.trim(ctx.body.cup, 4) || t.cup;
+    if (ctx.body.intro !== undefined) t.intro = ctx.trim(ctx.body.intro, 120);
+    if (Array.isArray(ctx.body.tags)) t.tags = ctx.body.tags.slice(0, 3);
+    if (Array.isArray(ctx.body.images)) {
+      t.images = ctx.body.images.slice(0, DEMO_IMG_MAX_COUNT);
+      if (t.images.length) { t.img = t.images[0]; t.avatar = t.images[0]; }
+    }
+    t.updated = ctx.stamp();
+    if (!ctx.save()) return ctx.fail(400, '沙盒儲存空間已滿，請先移除部分照片');
+    return ctx.ok({ member: demoClone(t) });
+  }
+
+  /* 刪除成員（連動清除該成員的評價與檢舉，與後端一致） */
+  if (ctx.id && ctx.method === 'DELETE') {
+    var idx = -1;
+    for (var d = 0; d < list.length; d++) { if (list[d].id === ctx.id) { idx = d; break; } }
+    if (idx === -1) return ctx.fail(404, '查無成員 #' + ctx.id);
+    var removed = list.splice(idx, 1)[0];
+    store.reviews = store.reviews.filter(function (r) { return r.memberId !== ctx.id; });
+    store.reports = store.reports.filter(function (p) { return p.memberId !== ctx.id; });
+    ctx.save();
+    return ctx.ok({ member: demoClone(removed), cleaned: true });
+  }
+
+  return ctx.fail(404, '沙盒未支援此成員操作：' + ctx.method);
+}
+
+/* --- 顧客評價（讀取與送出公開；審核需登入） --- */
+function demoReviews(ctx) {
+  var store = ctx.store;
+
+  if (ctx.method === 'GET') {
+    var out = store.reviews.slice().sort(function (a, b) {
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+    });
+    var mid = ctx.query.get('memberId');
+    if (store.authed) {
+      if (mid) out = out.filter(function (r) { return r.memberId === mid; });
+    } else {
+      if (!mid) return ctx.fail(400, '前台查詢評價需指定 memberId');
+      out = out.filter(function (r) { return r.memberId === mid && r.status === 'on'; });
+    }
+    return ctx.ok({ reviews: demoClone(out), count: out.length });
+  }
+
+  if (ctx.method === 'POST') {
+    var memberId = ctx.trim(ctx.body.memberId, 16);
+    var text = ctx.trim(ctx.body.text, 300);
+    if (!memberId) return ctx.fail(400, '缺少評價對象');
+    if (!text) return ctx.fail(400, '請填寫評價內容');
+    var mb = ctx.find(store.members, memberId);
+    if (!mb) return ctx.fail(404, '查無評價對象 #' + memberId);
+    var review = {
+      id: ctx.nextId('R'), memberId: memberId, memberName: mb.name,
+      nick: ctx.trim(ctx.body.nick, 20) || '匿名',
+      text: text,
+      images: Array.isArray(ctx.body.images) ? ctx.body.images.slice(0, 3) : [],
+      /* 沙盒裡沒有其他人能審核，直接顯示才能讓訪客立刻看到成果 */
+      status: 'on',
+      createdAt: ctx.stamp()
+    };
+    store.reviews.push(review);
+    if (!ctx.save()) {
+      store.reviews.pop();
+      return ctx.fail(400, '沙盒儲存空間已滿，請先移除部分圖片');
+    }
+    return ctx.ok({ review: demoClone(review) });
+  }
+
+  var g = ctx.guard();
+  if (g) return g;
+  var target = ctx.find(store.reviews, ctx.id);
+  if (!target) return ctx.fail(404, '查無評價 ' + ctx.id);
+
+  if (ctx.method === 'PUT' || ctx.method === 'PATCH') {
+    if (ctx.body.status !== undefined) {
+      if (['pending', 'on', 'off'].indexOf(ctx.body.status) === -1) return ctx.fail(400, '評價狀態不正確');
+      target.status = ctx.body.status;
+    }
+    if (ctx.body.text !== undefined) target.text = ctx.trim(ctx.body.text, 300);
+    if (Array.isArray(ctx.body.images)) target.images = ctx.body.images.slice(0, 3);
+    target.updated = ctx.stamp();
+    ctx.save();
+    return ctx.ok({ review: demoClone(target) });
+  }
+
+  if (ctx.method === 'DELETE') {
+    store.reviews = store.reviews.filter(function (r) { return r.id !== ctx.id; });
+    ctx.save();
+    return ctx.ok({ review: demoClone(target) });
+  }
+
+  return ctx.fail(404, '沙盒未支援此評價操作：' + ctx.method);
+}
+
+/* --- 預約 / 客服訊息 / 檢舉（結構相似，共用處理） --- */
+function demoCollection(ctx) {
+  var store = ctx.store;
+  var CFG = {
+    bookings: { key: 'bookings', one: 'booking', prefix: 'B', noun: '預約' },
+    messages: { key: 'messages', one: 'message', prefix: 'M', noun: '訊息' },
+    reports: { key: 'reports', one: 'report', prefix: 'P', noun: '檢舉' }
+  };
+  var cfg = CFG[ctx.resource];
+  var list = store[cfg.key];
+
+  /* 讀取清單（需登入，與後端權限一致） */
+  if (ctx.method === 'GET') {
+    var g = ctx.guard();
+    if (g) return g;
+    var out = list.slice().sort(function (a, b) {
+      return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+    });
+    var payload = { count: out.length, demo: true };
+    payload[cfg.key] = demoClone(out);
+    return ctx.ok(payload);
+  }
+
+  /* 送出（前台公開，任何人都能操作） */
+  if (ctx.method === 'POST') {
+    var item = { id: ctx.nextId(cfg.prefix), createdAt: ctx.stamp() };
+
+    if (ctx.resource === 'bookings') {
+      var mid = ctx.trim(ctx.body.memberId, 16);
+      var contact = ctx.trim(ctx.body.contact, 60);
+      if (!mid) return ctx.fail(400, '缺少預約對象');
+      if (!ctx.body.plan) return ctx.fail(400, '請選擇方案');
+      if (!ctx.body.date) return ctx.fail(400, '請選擇可約時間');
+      if (!contact) return ctx.fail(400, '請留下聯絡方式（LINE 或手機）');
+      var mb = ctx.find(store.members, mid);
+      if (!mb) return ctx.fail(404, '查無預約對象 #' + mid);
+      var mult = String(ctx.body.plan).indexOf('方案 C') !== -1 ? 3
+        : String(ctx.body.plan).indexOf('方案 B') !== -1 ? 2 : 1;
+      var plan = ctx.trim(ctx.body.plan, 40);
+      var date = ctx.trim(ctx.body.date, 20);
+      var time = ctx.trim(ctx.body.time, 20);
+      item.memberId = mid;
+      item.memberName = mb.name;
+      item.plan = plan;
+      item.price = Math.round((Number(mb.price) || 0) * mult / 500) * 500;
+      item.date = date;
+      item.time = time;
+      item.contact = contact;
+      item.note = ctx.trim(ctx.body.note, 120);
+      item.status = 'pending';
+      item.reply = '';
+      /* 與後端行為一致：同時建立一則客服通知 */
+      store.messages.push({
+        id: ctx.nextId('M'), name: contact, contact: contact,
+        memberId: mid, memberName: mb.name,
+        body: '【預約通知】' + mb.name + ' · ' + plan + ' · ' + date + ' ' + time,
+        status: 'unread', reply: '', createdAt: ctx.stamp()
+      });
+    } else if (ctx.resource === 'messages') {
+      var nm = ctx.trim(ctx.body.name, 20);
+      var text = ctx.trim(ctx.body.body, 300);
+      if (!nm) return ctx.fail(400, '請填寫稱呼');
+      if (!text) return ctx.fail(400, '請填寫訊息內容');
+      if (!ctx.trim(ctx.body.contact, 60)) return ctx.fail(400, '請留下聯絡方式（LINE 或手機）');
+      item.name = nm;
+      item.contact = ctx.trim(ctx.body.contact, 60);
+      item.body = text;
+      item.memberId = ctx.trim(ctx.body.memberId, 16);
+      item.memberName = ctx.trim(ctx.body.memberName, 20);
+      item.status = 'unread';
+      item.reply = '';
+    } else {
+      var reason = ctx.trim(ctx.body.reason, 40);
+      var detail = ctx.trim(ctx.body.detail, 300);
+      if (!reason) return ctx.fail(400, '請選擇檢舉原因');
+      if (!detail) return ctx.fail(400, '請簡述檢舉內容');
+      var tgt = ctx.find(store.members, ctx.trim(ctx.body.memberId, 16));
+      item.memberId = ctx.trim(ctx.body.memberId, 16);
+      item.memberName = tgt ? tgt.name : '';
+      item.reason = reason;
+      item.detail = detail;
+      item.reporter = ctx.trim(ctx.body.reporter, 30) || '匿名使用者';
+      item.status = 'open';
+    }
+
+    list.push(item);
+    if (!ctx.save()) {
+      list.pop();
+      return ctx.fail(400, '沙盒儲存空間已滿');
+    }
+    var done = { demo: true };
+    done[cfg.one] = demoClone(item);
+    return ctx.ok(done);
+  }
+
+  /* 更新 / 刪除（需登入，對應後台的確認、完成、回覆、處理等操作） */
+  var g2 = ctx.guard();
+  if (g2) return g2;
+  var t = ctx.find(list, ctx.id);
+  if (!t) return ctx.fail(404, '查無' + cfg.noun + ' ' + ctx.id);
+
+  if (ctx.method === 'PUT' || ctx.method === 'PATCH') {
+    if (ctx.body.status !== undefined) t.status = ctx.body.status;
+    if (ctx.body.reply !== undefined) {
+      t.reply = ctx.trim(ctx.body.reply, 300);
+      if (ctx.resource === 'messages') t.status = t.reply ? 'replied' : 'read';
+    }
+    if (ctx.body.note !== undefined) t.handleNote = ctx.trim(ctx.body.note, 160);
+    t.updated = ctx.stamp();
+    ctx.save();
+    var r1 = { demo: true };
+    r1[cfg.one] = demoClone(t);
+    return ctx.ok(r1);
+  }
+
+  if (ctx.method === 'DELETE') {
+    store[cfg.key] = list.filter(function (x) { return x.id !== ctx.id; });
+    ctx.save();
+    var r2 = { demo: true };
+    r2[cfg.one] = demoClone(t);
+    return ctx.ok(r2);
+  }
+
+  return ctx.fail(404, '沙盒未支援此操作：' + ctx.method);
+}
+
+//__DEMO_F__
 
 function apiRequest(method, url, body) {
   return detectBackend().then(function (demo) {
@@ -385,7 +832,7 @@ function showDemoBanner() {
   el.className = 'demo-banner';
   el.setAttribute('role', 'status');
   var text = document.createElement('span');
-  text.textContent = '靜態示範版：可自由瀏覽列表與個人頁面；預約、訊息、評價等送出功能需搭配後端（node server.js）才能使用。';
+  text.textContent = '示範沙盒：資料存在你的瀏覽器，可以自由操作（送出預約／評價／檢舉、進入後台試玩）。重新整理仍會保留，清除瀏覽資料則會重置。';
   var close = document.createElement('button');
   close.type = 'button';
   close.className = 'close';
